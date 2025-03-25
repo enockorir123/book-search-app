@@ -1,3 +1,27 @@
+document.getElementById("searchForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    
+    const searchQuery = document.getElementById("searchInput").value.trim();
+    if (searchQuery) {
+        searchBooks(searchQuery);
+    }
+});
+
+function searchBooks(query) {
+    const resultsDiv = document.getElementById("results");
+    resultsDiv.innerHTML = "<p>Loading...</p>"; // Show loading text
+
+    const apiUrl = `https://openlibrary.org/search.json?q=${query}`;
+
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => displayBooks(data.docs))
+        .catch(error => {
+            resultsDiv.innerHTML = "<p>Error fetching data. Please try again.</p>";
+            console.error("Error fetching data:", error);
+        });
+}
+
 function displayBooks(books) {
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = "";
@@ -14,20 +38,13 @@ function displayBooks(books) {
         const title = book.title || "No title available";
         const author = book.author_name ? book.author_name[0] : "Unknown author";
         
-        // Improved cover image handling
-        let coverURL;
-        if (book.cover_i) {
-            coverURL = `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
-        } else if (book.isbn && book.isbn.length > 0) {
-            // Try to get cover by ISBN
-            coverURL = `https://covers.openlibrary.org/b/isbn/${book.isbn[0]}-M.jpg`;
-        } else {
-            // Generic placeholder with book title
-            coverURL = `https://via.placeholder.com/150x200.png?text=${encodeURIComponent(title.substring(0, 20))}`;
-        }
+        // cover image handling
+        const coverID = book.cover_i 
+            ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
+            : "https://via.placeholder.com/150x200?text=No+Cover";
 
         bookElement.innerHTML = `
-            <img src="${coverURL}" alt="Cover for ${title}" onerror="this.onerror=null; this.src='https://via.placeholder.com/150x200.png?text=No+Cover';">
+            <img src="${coverID}" alt="Book Cover">
             <h3>${title}</h3>
             <p>by ${author}</p>
         `;
@@ -46,3 +63,18 @@ function displayBooks(books) {
         resultsDiv.appendChild(bookElement);
     });
 }
+
+// Add DOMContentLoaded event listener for input focus effects
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById("searchInput");
+    
+    searchInput.addEventListener('focus', () => {
+        searchInput.style.borderColor = '#007bff';
+        searchInput.style.boxShadow = '0 0 5px rgba(0, 123, 255, 0.5)';
+    });
+
+    searchInput.addEventListener('blur', () => {
+        searchInput.style.borderColor = '#ccc';
+        searchInput.style.boxShadow = 'none';
+    });
+});
