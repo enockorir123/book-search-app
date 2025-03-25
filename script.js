@@ -8,12 +8,18 @@ document.getElementById("searchForm").addEventListener("submit", function(event)
 });
 
 function searchBooks(query) {
+    const resultsDiv = document.getElementById("results");
+    resultsDiv.innerHTML = "<p>Loading...</p>"; // Show loading text
+
     const apiUrl = `https://openlibrary.org/search.json?q=${query}`;
 
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => displayBooks(data.docs))
-        .catch(error => console.error("Error fetching data:", error));
+        .catch(error => {
+            resultsDiv.innerHTML = "<p>Error fetching data. Please try again.</p>";
+            console.error("Error fetching data:", error);
+        });
 }
 
 function displayBooks(books) {
