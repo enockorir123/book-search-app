@@ -66,3 +66,10 @@ button:hover {
     height: auto;
     border-radius: 5px;
 }
+input {
+    padding: 10px;
+    width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}

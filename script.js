@@ -1,10 +1,19 @@
 document.getElementById("searchForm").addEventListener("submit", function(event) {
     event.preventDefault();
     
-    const searchQuery = document.getElementById("searchInput").value.trim();
-    if (searchQuery) {
-        searchBooks(searchQuery);
+    const searchInput = document.getElementById("searchInput");
+    const searchQuery = searchInput.value.trim();
+    
+    // Input validation
+    if (searchQuery.length < 2) {
+        alert("Please enter at least 2 characters for your search.");
+        return;
     }
+
+    searchBooks(searchQuery);
+    
+    // Clear the input after search
+    searchInput.value = "";
 });
 
 function searchBooks(query) {
@@ -37,7 +46,7 @@ function displayBooks(books) {
 
         const title = book.title || "No title available";
         const author = book.author_name ? book.author_name[0] : "Unknown author";
-        const coverID = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg` : "placeholder.jpg";
+        const coverID = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg` : "https://via.placeholder.com/150x200?text=No+Cover";
 
         bookElement.innerHTML = `
             <img src="${coverID}" alt="Book Cover">
@@ -45,6 +54,33 @@ function displayBooks(books) {
             <p>by ${author}</p>
         `;
 
+        // Hover event listeners (from previous commit)
+        bookElement.addEventListener('mouseenter', () => {
+            bookElement.style.transform = 'scale(1.05)';
+            bookElement.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
+        });
+
+        bookElement.addEventListener('mouseleave', () => {
+            bookElement.style.transform = 'scale(1)';
+            bookElement.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        });
+
         resultsDiv.appendChild(bookElement);
     });
 }
+
+// New event listener: DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById("searchInput");
+    
+    // Add focus/blur effect to input
+    searchInput.addEventListener('focus', () => {
+        searchInput.style.borderColor = '#007bff';
+        searchInput.style.boxShadow = '0 0 5px rgba(0, 123, 255, 0.5)';
+    });
+
+    searchInput.addEventListener('blur', () => {
+        searchInput.style.borderColor = '#ccc';
+        searchInput.style.boxShadow = 'none';
+    });
+});
