@@ -52,9 +52,12 @@ function displayBooks(books) {
             : "https://via.placeholder.com/150x200?text=No+Cover";
 
         bookElement.innerHTML = `
-            <img src="${coverID}" alt="Book Cover">
-            <h3>${title}</h3>
-            <p>by ${author}</p>
+            <div class="book-cover-container">
+                <img src="${coverID}" alt="Book Cover" class="book-cover" 
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/150x200?text=Cover+Not+Found';">
+            </div>
+            <h3>${escapeHTML(title)}</h3>
+            <p>by ${escapeHTML(author)}</p>
             <button class="favorite-button">Add to Favorites</button>
         `;
 
@@ -78,6 +81,18 @@ function displayBooks(books) {
     });
 }
 
+// Function to escape HTML to prevent XSS
+function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag));
+}
+
 // Function to toggle favorites
 function toggleFavorite(book) {
     const index = favorites.findIndex(fav => fav.title === book.title);
@@ -91,13 +106,21 @@ function toggleFavorite(book) {
     updateFavoritesDisplay();
 }
 
-// Function to update the favorites display (optional)
+// Function to update the favorites display
 function updateFavoritesDisplay() {
     const favoritesDiv = document.getElementById("favorites");
     favoritesDiv.innerHTML = ""; // Clear previous favorites
     favorites.forEach(book => {
         const favoriteElement = document.createElement("div");
-        favoriteElement.innerHTML = `<p>${book.title} by ${book.author}</p>`;
+        favoriteElement.innerHTML = `
+            <div class="favorite-item">
+                <img src="${book.cover}" alt="Book Cover" class="favorite-cover">
+                <div class="favorite-details">
+                    <p>${book.title}</p>
+                    <p>by ${book.author}</p>
+                </div>
+            </div>
+        `;
         favoritesDiv.appendChild(favoriteElement);
     });
 }
@@ -124,7 +147,6 @@ function updateHistoryDisplay() {
         historyList.appendChild(historyItem);
     });
 }
-
 
 // Add DOMContentLoaded event listener for input focus effects
 document.addEventListener('DOMContentLoaded', () => {
