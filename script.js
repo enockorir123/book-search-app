@@ -1,12 +1,19 @@
+// Initialize arrays for favorites and search history
+let favorites = [];
+let searchHistory = [];
+
+// Event listener for the search form submission
 document.getElementById("searchForm").addEventListener("submit", function(event) {
     event.preventDefault();
     
     const searchQuery = document.getElementById("searchInput").value.trim();
     if (searchQuery) {
+        saveSearchQuery(searchQuery); // Save the search query
         searchBooks(searchQuery);
     }
 });
 
+// Function to search for books using the Open Library API
 function searchBooks(query) {
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = "<p>Loading...</p>"; // Show loading text
@@ -22,6 +29,7 @@ function searchBooks(query) {
         });
 }
 
+// Function to display the fetched books
 function displayBooks(books) {
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = "";
@@ -38,7 +46,7 @@ function displayBooks(books) {
         const title = book.title || "No title available";
         const author = book.author_name ? book.author_name[0] : "Unknown author";
         
-        // cover image handling
+        // Cover image handling
         const coverID = book.cover_i 
             ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
             : "https://via.placeholder.com/150x200?text=No+Cover";
@@ -47,7 +55,13 @@ function displayBooks(books) {
             <img src="${coverID}" alt="Book Cover">
             <h3>${title}</h3>
             <p>by ${author}</p>
+            <button class="favorite-button">Add to Favorites</button>
         `;
+
+        // Add event listener for the favorite button
+        bookElement.querySelector('.favorite-button').addEventListener('click', () => {
+            toggleFavorite({ title, author, cover: coverID });
+        });
 
         // Hover event listeners
         bookElement.addEventListener('mouseenter', () => {
@@ -63,6 +77,54 @@ function displayBooks(books) {
         resultsDiv.appendChild(bookElement);
     });
 }
+
+// Function to toggle favorites
+function toggleFavorite(book) {
+    const index = favorites.findIndex(fav => fav.title === book.title);
+    if (index > -1) {
+        favorites.splice(index, 1); // Remove from favorites
+        alert(`${book.title} has been removed from favorites.`);
+    } else {
+        favorites.push(book); // Add to favorites
+        alert(`${book.title} has been added to favorites!`);
+    }
+    updateFavoritesDisplay();
+}
+
+// Function to update the favorites display (optional)
+function updateFavoritesDisplay() {
+    const favoritesDiv = document.getElementById("favorites");
+    favoritesDiv.innerHTML = ""; // Clear previous favorites
+    favorites.forEach(book => {
+        const favoriteElement = document.createElement("div");
+        favoriteElement.innerHTML = `<p>${book.title} by ${book.author}</p>`;
+        favoritesDiv.appendChild(favoriteElement);
+    });
+}
+
+// Function to save search queries
+function saveSearchQuery(query) {
+    if (!searchHistory.includes(query)) {
+        searchHistory.push(query);
+        updateHistoryDisplay();
+    }
+}
+
+// Function to update the search history display
+function updateHistoryDisplay() {
+    const historyList = document.getElementById("historyList");
+    historyList.innerHTML = ""; // Clear previous history
+    searchHistory.forEach(query => {
+        const historyItem = document.createElement("li");
+        historyItem.textContent = query;
+        historyItem.addEventListener('click', () => {
+            document.getElementById("searchInput").value = query;
+            searchBooks(query); // Trigger search on click
+        });
+        historyList.appendChild(historyItem);
+    });
+}
+
 
 // Add DOMContentLoaded event listener for input focus effects
 document.addEventListener('DOMContentLoaded', () => {
