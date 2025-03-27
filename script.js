@@ -1,52 +1,106 @@
-// Initialize arrays for favorites and search history
-let favorites = [];
-let searchHistory = [];
 
-// Event listener for the search form submission
-document.getElementById("searchForm").addEventListener("submit", function(event) {
-    event.preventDefault();
-    
-    const searchQuery = document.getElementById("searchInput").value.trim();
-    if (searchQuery) {
-        saveSearchQuery(searchQuery); // Save the search query
-        searchBooks(searchQuery);
+
+// Local Storage Management
+const StorageManager = {
+    saveToLocalStorage(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            console.error(`Error saving ${key} to localStorage:`, error);
+        }
+    },
+
+    getFromLocalStorage(key, defaultValue = []) {
+        try {
+            const stored = localStorage.getItem(key);
+            return stored ? JSON.parse(stored) : defaultValue;
+        } catch (error) {
+            console.error(`Error retrieving ${key} from localStorage:`, error);
+            return defaultValue;
+        }
     }
-});
+};
 
-// Function to search for books using the Open Library API
-function searchBooks(query) {
-    const resultsDiv = document.getElementById("results");
-    resultsDiv.innerHTML = "<p>Loading...</p>"; // Show loading text
+// Book Search Application
+class BookSearchApp {
+    constructor() {
+        // Initialize state with local storage
+        this.favorites = StorageManager.getFromLocalStorage('favorites');
+        this.searchHistory = StorageManager.getFromLocalStorage('searchHistory');
 
-    const apiUrl = `https://openlibrary.org/search.json?q=${query}`;
+        this.initEventListeners();
+        this.updateFavoritesDisplay();
+        this.updateHistoryDisplay();
+    }
 
-    fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => displayBooks(data.docs))
-        .catch(error => {
-            resultsDiv.innerHTML = "<p>Error fetching data. Please try again.</p>";
-            console.error("Error fetching data:", error);
+    initEventListeners() {
+        const searchForm = document.getElementById("searchForm");
+        const searchInput = document.getElementById("searchInput");
+
+        searchForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const searchQuery = searchInput.value.trim();
+            
+            if (searchQuery) {
+                this.saveSearchQuery(searchQuery);
+                this.searchBooks(searchQuery);
+            }
         });
-}
 
-// Function to display the fetched books
-function displayBooks(books) {
-    const resultsDiv = document.getElementById("results");
-    resultsDiv.innerHTML = "";
+        // Input focus effects
+        searchInput.addEventListener('focus', () => {
+            searchInput.style.borderColor = '#007bff';
+            searchInput.style.boxShadow = '0 0 5px rgba(0, 123, 255, 0.5)';
+        });
 
-    if (books.length === 0) {
-        resultsDiv.innerHTML = "<p>No books found. Try another search term.</p>";
-        return;
+        searchInput.addEventListener('blur', () => {
+            searchInput.style.borderColor = '#ccc';
+            searchInput.style.boxShadow = 'none';
+        });
     }
 
-    books.slice(0, 10).forEach(book => {
+    // Improved book search function with error handling
+    async searchBooks(query) {
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = '<div class="loading">Loading...</div>';
+
+        try {
+            const response = await fetch(`https://openlibrary.org/search.json?q=${query}`);
+            const data = await response.json();
+            this.displayBooks(data.docs);
+        } catch (error) {
+            resultsDiv.innerHTML = `
+                <div class="error">
+                    <p>Error fetching data. Please try again.</p>
+                    <small>${error.message}</small>
+                </div>
+            `;
+            console.error("Search error:", error);
+        }
+    }
+
+    displayBooks(books) {
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "";
+
+        if (!books || books.length === 0) {
+            resultsDiv.innerHTML = "<p>No books found. Try another search term.</p>";
+            return;
+        }
+
+        books.slice(0, 12).forEach(book => {
+            const bookElement = this.createBookElement(book);
+            resultsDiv.appendChild(bookElement);
+        });
+    }
+
+    createBookElement(book) {
         const bookElement = document.createElement("div");
         bookElement.classList.add("book");
 
         const title = book.title || "No title available";
         const author = book.author_name ? book.author_name[0] : "Unknown author";
         
-        // Cover image handling
         const coverID = book.cover_i 
             ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
             : "https://via.placeholder.com/150x200?text=No+Cover";
@@ -56,109 +110,174 @@ function displayBooks(books) {
                 <img src="${coverID}" alt="Book Cover" class="book-cover" 
                      onerror="this.onerror=null; this.src='https://via.placeholder.com/150x200?text=Cover+Not+Found';">
             </div>
-            <h3>${escapeHTML(title)}</h3>
-            <p>by ${escapeHTML(author)}</p>
-            <button class="favorite-button">Add to Favorites</button>
+            <div class="book-content">
+                <h3 class="book-title">${this.escapeHTML(title)}</h3>
+                <p class="book-author">by ${this.escapeHTML(author)}</p>
+                <button class="favorite-button">
+                    ${this.isFavorite(title) ? 'Remove from Favorites' : 'Add to Favorites'}
+                </button>
+            </div>
         `;
 
-        // Add event listener for the favorite button
-        bookElement.querySelector('.favorite-button').addEventListener('click', () => {
-            toggleFavorite({ title, author, cover: coverID });
+        // Favorite button event listener
+        const favoriteButton = bookElement.querySelector('.favorite-button');
+        favoriteButton.addEventListener('click', () => {
+            this.toggleFavorite({ 
+                title, 
+                author, 
+                cover: coverID 
+            });
+            
+            // Update button text
+            favoriteButton.textContent = this.isFavorite(title) 
+                ? 'Remove from Favorites' 
+                : 'Add to Favorites';
         });
 
-        // Hover event listeners
-        bookElement.addEventListener('mouseenter', () => {
-            bookElement.style.transform = 'scale(1.05)';
-            bookElement.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
-        });
-
-        bookElement.addEventListener('mouseleave', () => {
-            bookElement.style.transform = 'scale(1)';
-            bookElement.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
-        });
-
-        resultsDiv.appendChild(bookElement);
-    });
-}
-
-// Function to escape HTML to prevent XSS
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag));
-}
-
-// Function to toggle favorites
-function toggleFavorite(book) {
-    const index = favorites.findIndex(fav => fav.title === book.title);
-    if (index > -1) {
-        favorites.splice(index, 1); // Remove from favorites
-        alert(`${book.title} has been removed from favorites.`);
-    } else {
-        favorites.push(book); // Add to favorites
-        alert(`${book.title} has been added to favorites!`);
+        return bookElement;
     }
-    updateFavoritesDisplay();
-}
 
-// Function to update the favorites display
-function updateFavoritesDisplay() {
-    const favoritesDiv = document.getElementById("favorites");
-    favoritesDiv.innerHTML = ""; // Clear previous favorites
-    favorites.forEach(book => {
-        const favoriteElement = document.createElement("div");
-        favoriteElement.innerHTML = `
-            <div class="favorite-item">
+    // Favorite Management
+    toggleFavorite(book) {
+        const index = this.favorites.findIndex(fav => fav.title === book.title);
+        
+        if (index > -1) {
+            // Remove from favorites
+            this.favorites.splice(index, 1);
+            this.showNotification(`${book.title} removed from favorites`);
+        } else {
+            // Add to favorites
+            this.favorites.push(book);
+            this.showNotification(`${book.title} added to favorites`);
+        }
+
+        // Update displays and local storage
+        this.updateFavoritesDisplay();
+        StorageManager.saveToLocalStorage('favorites', this.favorites);
+    }
+
+    isFavorite(title) {
+        return this.favorites.some(fav => fav.title === title);
+    }
+
+    updateFavoritesDisplay() {
+        const favoritesDiv = document.getElementById("favorites");
+        favoritesDiv.innerHTML = ""; 
+
+        if (this.favorites.length === 0) {
+            favoritesDiv.innerHTML = '<p>No favorites yet</p>';
+            return;
+        }
+
+        this.favorites.forEach((book, index) => {
+            const favoriteElement = document.createElement("div");
+            favoriteElement.classList.add("favorite-item");
+            favoriteElement.innerHTML = `
                 <img src="${book.cover}" alt="Book Cover" class="favorite-cover">
                 <div class="favorite-details">
                     <p>${book.title}</p>
                     <p>by ${book.author}</p>
                 </div>
-            </div>
-        `;
-        favoritesDiv.appendChild(favoriteElement);
-    });
-}
+                <button class="remove-favorite" data-index="${index}">✕</button>
+            `;
 
-// Function to save search queries
-function saveSearchQuery(query) {
-    if (!searchHistory.includes(query)) {
-        searchHistory.push(query);
-        updateHistoryDisplay();
+            // Remove favorite button event listener
+            const removeButton = favoriteElement.querySelector('.remove-favorite');
+            removeButton.addEventListener('click', () => {
+                this.removeFavoriteByIndex(index);
+            });
+
+            favoritesDiv.appendChild(favoriteElement);
+        });
+    }
+
+    removeFavoriteByIndex(index) {
+        const removedBook = this.favorites[index];
+        this.favorites.splice(index, 1);
+        this.updateFavoritesDisplay();
+        StorageManager.saveToLocalStorage('favorites', this.favorites);
+        this.showNotification(`${removedBook.title} removed from favorites`);
+    }
+
+    // Search History Management
+    saveSearchQuery(query) {
+        // Prevent duplicate entries and limit history
+        if (!this.searchHistory.includes(query)) {
+            this.searchHistory.unshift(query);
+            
+            // Limit search history to last 10 queries
+            this.searchHistory = this.searchHistory.slice(0, 10);
+            
+            // Update display and local storage
+            this.updateHistoryDisplay();
+            StorageManager.saveToLocalStorage('searchHistory', this.searchHistory);
+        }
+    }
+
+    updateHistoryDisplay() {
+        const historyList = document.getElementById("historyList");
+        historyList.innerHTML = ""; 
+
+        if (this.searchHistory.length === 0) {
+            historyList.innerHTML = '<li>No recent searches</li>';
+            return;
+        }
+
+        this.searchHistory.forEach((query, index) => {
+            const historyItem = document.createElement("li");
+            historyItem.textContent = query;
+            
+            // Add click event to re-search
+            historyItem.addEventListener('click', () => {
+                document.getElementById("searchInput").value = query;
+                this.searchBooks(query);
+            });
+
+            // Add remove button for each history item
+            const removeButton = document.createElement("span");
+            removeButton.textContent = "✕";
+            removeButton.classList.add("remove-history");
+            removeButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent re-searching
+                this.removeHistoryItem(index);
+            });
+
+            historyItem.appendChild(removeButton);
+            historyList.appendChild(historyItem);
+        });
+    }
+
+    removeHistoryItem(index) {
+        this.searchHistory.splice(index, 1);
+        this.updateHistoryDisplay();
+        StorageManager.saveToLocalStorage('searchHistory', this.searchHistory);
+    }
+
+    // Utility Methods
+    escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag));
+    }
+
+    showNotification(message) {
+        const notification = document.createElement('div');
+        notification.classList.add('notification');
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
     }
 }
 
-// Function to update the search history display
-function updateHistoryDisplay() {
-    const historyList = document.getElementById("historyList");
-    historyList.innerHTML = ""; // Clear previous history
-    searchHistory.forEach(query => {
-        const historyItem = document.createElement("li");
-        historyItem.textContent = query;
-        historyItem.addEventListener('click', () => {
-            document.getElementById("searchInput").value = query;
-            searchBooks(query); // Trigger search on click
-        });
-        historyList.appendChild(historyItem);
-    });
-}
-
-// Add DOMContentLoaded event listener for input focus effects
+// Initialize the app when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById("searchInput");
-    
-    searchInput.addEventListener('focus', () => {
-        searchInput.style.borderColor = '#007bff';
-        searchInput.style.boxShadow = '0 0 5px rgba(0, 123, 255, 0.5)';
-    });
-
-    searchInput.addEventListener('blur', () => {
-        searchInput.style.borderColor = '#ccc';
-        searchInput.style.boxShadow = 'none';
-    });
+    new BookSearchApp();
 });

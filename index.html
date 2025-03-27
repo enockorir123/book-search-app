@@ -4,32 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Search App</title>
+    
+    <meta name="description" content="A comprehensive book search application to find and favorite books">
+    <meta name="keywords" content="book search, library, books, reading">
+    
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="script.js" as="script">
+    
     <link rel="stylesheet" href="styles.css">
+    
+    <link rel="icon" type="image/svg+xml" href="book-icon.svg">
 </head>
 <body>
-    <header>
-        <h1>Book Search App</h1>
-    </header>
-    
-    <main>
-        <form id="searchForm">
-            <input type="text" id="searchInput" placeholder="Search for books..." required>
-            <button type="submit">Search</button>
-        </form>
-        
-        <div id="results"></div>
+    <div class="app-container">
+        <header role="banner">
+            <div class="container">
+                <h1>Book Search App</h1>
+            </div>
+        </header>
 
-        <div id="history-container">
-            <h2>Search History</h2>
-            <ul id="historyList"></ul>
-        </div>
+        <main role="main">
+            <section class="search-section">
+                <div class="container">
+                    <form id="searchForm" aria-label="Book Search Form">
+                        <label for="searchInput" class="visually-hidden">
+                            Search for books
+                        </label>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            name="search" 
+                            placeholder="Search for books..." 
+                            required 
+                            autocomplete="off"
+                            aria-describedby="search-hint"
+                        >
+                        <small id="search-hint" class="visually-hidden">
+                            Enter a book title, author, or keyword
+                        </small>
+                        <button type="submit" aria-label="Search Books">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            Search
+                        </button>
+                    </form>
+                </div>
+            </section>
 
-        <div id="favorites-container">
-            <h2>Favorites</h2>
-            <div id="favorites"></div>
-        </div>
-    </main>
+            <section class="results-section">
+                <div class="container">
+                    <h2 class="section-title">Search Results</h2>
+                    <div id="results" aria-live="polite">
+                        <!-- Books will be dynamically added here -->
+                    </div>
+                </div>
+            </section>
 
-    <script src="script.js"></script>
+            <div class="sidebar">
+                <section class="history-section">
+                    <div class="container">
+                        <h2 class="section-title">Search History</h2>
+                        <ul id="historyList" aria-label="Recent Searches">
+                            <!-- Search history items will be dynamically added here -->
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="favorites-section">
+                    <div class="container">
+                        <h2 class="section-title">Favorites</h2>
+                        <div id="favorites" aria-label="Favorite Books">
+                            <!-- Favorite books will be dynamically added here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer role="contentinfo">
+            <div class="container">
+                <p>&copy; 2025 Book Search App. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <div id="notification-container" aria-live="polite"></div>
+
+
+    <script src="script.js" defer></script>
 </body>
 </html>
